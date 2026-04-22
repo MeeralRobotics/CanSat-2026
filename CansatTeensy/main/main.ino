@@ -6,17 +6,22 @@
 #include <Adafruit_BMP280.h>
 #include <SPI.h>
 #include <LoRa.h>
-
+#include <TinyGPS++.h>
 
 #define LORA_SS   10
 #define LORA_RST  9
 #define LORA_DIO0 2
 
+#define GNSS Serial1
+
+TinyGPSPlus gps.
 int counter = 0;
 Adafruit_BMP280 bmp;
 
 void setup(){
   Serial.begin(9600);
+  GNSS.begin(115200);
+
 
   if (!bmp.begin(0x76)) {
     Serial.println("no bmp");
@@ -46,9 +51,16 @@ void setup(){
 }
 
 void loop(){
+  while(GNSS.available())
+  {
+    gps.encode(GNSS.read());
+  }
   float temp = bmp.readTemperature();
   float pressure = bmp.readPressure();
   int ntc = analogRead(A9);
+  float longitude = gps.location.lng();
+  float latitude = gps.location.lat();
+  
 
   // change this to lora.write for bytes not string
   LoRa.beginPacket();
