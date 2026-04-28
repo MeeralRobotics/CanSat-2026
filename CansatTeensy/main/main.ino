@@ -38,7 +38,7 @@ void setup(){
 
   // lora settings
   LoRa.setTxPower(20);
-  LoRa.setSpreadingFactor(12);
+  LoRa.setSpreadingFactor(12); // set this to a lower level
   LoRa.setSignalBandwidth(125E3);
   LoRa.setCodingRate4(8);
   LoRa.enableCrc();
@@ -64,7 +64,7 @@ void loop(){
 
   // change this to lora.write for bytes not string
   LoRa.beginPacket();
-
+  // -- DEBUG --
   LoRa.print(counter);
   LoRa.print(' ');
   LoRa.print(temp);
@@ -72,7 +72,11 @@ void loop(){
   LoRa.print(pressure);
   LoRa.print(' ');
   LoRa.print(ntc);
+  // ----
 
+  // -- PROD --
+  
+  //
   LoRa.endPacket();
 
   // Debug
