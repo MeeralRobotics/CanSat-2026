@@ -45,9 +45,6 @@ void setup(){
   LoRa.setSyncWord(0xF3);
 
   Serial.println("lora init");
-
-
-  
 }
 
 void loop(){
