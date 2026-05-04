@@ -1,6 +1,3 @@
-#include "ntc.h"
-#include "bmp.h"
-
 #include <Arduino.h>
 #include <Wire.h>
 #include <Adafruit_BMP280.h>
@@ -14,7 +11,7 @@
 
 #define GNSS Serial1
 
-TinyGPSPlus gps.
+TinyGPSPlus gps;
 int counter = 0;
 Adafruit_BMP280 bmp;
 
@@ -45,6 +42,14 @@ void setup(){
   LoRa.setSyncWord(0xF3);
 
   Serial.println("lora init");
+  
+  pinMode(A8, INPUT);
+  pinMode(A9, INPUT);
+  pinMode(A17, INPUT);
+}
+
+double ConvertTemp(double x){
+  return (((((-1.4078e-12 * x + 3.8668e-09) * x - 4.2095e-06) * x + 2.2864e-03) * x - 7.2374e-01) * x + 1.5920e+02);
 }
 
 void loop(){
@@ -54,26 +59,27 @@ void loop(){
   }
   float temp = bmp.readTemperature();
   float pressure = bmp.readPressure();
-  int ntc = analogRead(A9);
   float longitude = gps.location.lng();
   float latitude = gps.location.lat();
-  
+  double readNtc1 = analogRead(A8);
+  double readNtc2 = analogRead(A9);
+  double readNtc3 = analogRead(A17);
+
+  double ntc1 = ConvertTemp(readNtc1);
+  double ntc2 = ConvertTemp(readNtc2);
+  double ntc3 = ConvertTemp(readNtc3);
+
+  Serial.print(ntc1);
+  Serial.print(" ");
+  Serial.print(ntc2);
+  Serial.print(" ");
+  Serial.println(ntc3);
 
   // change this to lora.write for bytes not string
   LoRa.beginPacket();
-  // -- DEBUG --
-  LoRa.print(counter);
-  LoRa.print(' ');
-  LoRa.print(temp);
-  LoRa.print(' ');
-  LoRa.print(pressure);
-  LoRa.print(' ');
-  LoRa.print(ntc);
-  // ----
 
-  // -- PROD --
   
-  //
+
   LoRa.endPacket();
 
   // Debug
@@ -82,10 +88,8 @@ void loop(){
   Serial.print(temp);
   Serial.print(' ');
   Serial.print(pressure);
-  Serial.print(' ');
-  Serial.println(ntc);
-
+  Serial.println(' ');
+ 
+  delay(500);
   counter++;
-
-  delay(1000);
 }
