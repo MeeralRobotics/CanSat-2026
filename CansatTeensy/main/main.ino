@@ -193,8 +193,8 @@ void loop(){
   f.print(counter); f.print(' ');
   f.print(temp);   f.print(' ');
   f.print(pressure);  f.print(' ');
-  f.print(lon); f.print(' ');
-  f.println(lat);
+  f.print(lon, 6); f.print(' ');
+  f.println(lat, 6);
   f.close();
   }
   /*// Debug
