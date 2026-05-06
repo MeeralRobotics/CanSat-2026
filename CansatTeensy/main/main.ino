@@ -4,27 +4,49 @@
 #include <SPI.h>
 #include <LoRa.h>
 #include <TinyGPS++.h>
+#include <SD.h>
+#include "MPU6050_6Axis_MotionApps20.h"
 
 #define LORA_SS   10
 #define LORA_RST  9
 #define LORA_DIO0 2
-
+#define buzzer 37
 #define GNSS Serial1
+#define OUTPUT_READABLE_QUATERNION
 
 TinyGPSPlus gps;
 int counter = 0;
 Adafruit_BMP280 bmp;
+MPU6050 mpu;
+float seaLevelPressure = 0.0;
+Quaternion q;
+
+uint8_t fifoBuffer[64];
+
+File f;
+char filename[15];
+
+double lat = 0;
+double lon = 0;
+
+float max_alt = 0.0;
+float timerArmagedon = 0.0;
 
 void setup(){
   Serial.begin(9600);
   GNSS.begin(115200);
 
+  Wire.begin();
 
   if (!bmp.begin(0x76)) {
     Serial.println("no bmp");
   }
-
   Serial.println("bmp init");
+
+  mpu.initialize();
+  mpu.dmpInitialize();
+  mpu.setDMPEnabled(true);
+
 
   
   LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);
@@ -33,11 +55,10 @@ void setup(){
     Serial.println("no lora");
   }
 
-  // lora settings
   LoRa.setTxPower(20);
-  LoRa.setSpreadingFactor(12); // set this to a lower level
+  LoRa.setSpreadingFactor(10);
   LoRa.setSignalBandwidth(125E3);
-  LoRa.setCodingRate4(8);
+  LoRa.setCodingRate4(5);
   LoRa.enableCrc();
   LoRa.setSyncWord(0xF3);
 
@@ -46,6 +67,19 @@ void setup(){
   pinMode(A8, INPUT);
   pinMode(A9, INPUT);
   pinMode(A17, INPUT);
+
+  pinMode(buzzer, OUTPUT);
+  
+  SD.begin(BUILTIN_SDCARD);
+
+  int fileIndex = 0;
+  while (true) {
+    sprintf(filename, "log%d.txt", fileIndex);
+    if (!SD.exists(filename)) break;
+    fileIndex++;
+  }
+
+  
 }
 
 double ConvertTemp(double x){
@@ -53,14 +87,26 @@ double ConvertTemp(double x){
 }
 
 void loop(){
+  if(seaLevelPressure == 0.0)
+  {
+    seaLevelPressure = bmp.readPressure();
+  }
   while(GNSS.available())
   {
-    gps.encode(GNSS.read());
+    char c = GNSS.read();
+    gps.encode(c);
   }
-  float temp = bmp.readTemperature();
+    
+  
   float pressure = bmp.readPressure();
-  float longitude = gps.location.lng();
-  float latitude = gps.location.lat();
+
+  if (gps.location.isValid()) {
+  lat = gps.location.lat();
+  lon = gps.location.lng();
+  Serial.print(lon);
+  Serial.print(" ");
+  Serial.println(lat);
+  }
   double readNtc1 = analogRead(A8);
   double readNtc2 = analogRead(A9);
   double readNtc3 = analogRead(A17);
@@ -68,28 +114,97 @@ void loop(){
   double ntc1 = ConvertTemp(readNtc1);
   double ntc2 = ConvertTemp(readNtc2);
   double ntc3 = ConvertTemp(readNtc3);
-
+  
+  float temp = (ntc1 + ntc3) / 2.0;
+  
+  /*
   Serial.print(ntc1);
   Serial.print(" ");
   Serial.print(ntc2);
   Serial.print(" ");
   Serial.println(ntc3);
+  */
 
-  // change this to lora.write for bytes not string
-  LoRa.beginPacket();
+  float altitude = bmp.readAltitude(seaLevelPressure);
+  max_alt = max(max_alt, altitude);
 
+  if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
+    mpu.dmpGetQuaternion(&q, fifoBuffer);
+/*
+    Serial.print(q.w); Serial.print(",");
+    Serial.print(q.x); Serial.print(",");
+    Serial.print(q.y); Serial.print(",");
+    Serial.println(q.z);
+  */}
+
+  if(altitude <= max_alt - 500)
+  {
+    digitalWrite(buzzer, HIGH);
+  }
+
+  if(millis() >= timerArmagedon){
+  timerArmagedon = millis() + 700;
+  int16_t tempRaw = temp * 10;
+  int32_t latRaw  = lat * 100000;
+  int32_t lonRaw  = lon * 100000;
+  int32_t presRaw = pressure;
+  int16_t qW = q.w * 100;
+  int16_t qX = q.x * 100;
+  int16_t qY = q.y * 100;
+  int16_t qZ = q.z * 100;
+
+  byte packet[22];
   
+  packet[0] = (tempRaw >> 8) & 0xFF;
+  packet[1] = tempRaw & 0xFF;
+  packet[2] = (latRaw >> 24) & 0xFF;
+  packet[3] = (latRaw >> 16) & 0xFF;
+  packet[4] = (latRaw >> 8)  & 0xFF;
+  packet[5] = latRaw & 0xFF;
+  packet[6] = (lonRaw >> 24) & 0xFF;
+  packet[7] = (lonRaw >> 16) & 0xFF;
+  packet[8] = (lonRaw >> 8)  & 0xFF;
+  packet[9] = lonRaw & 0xFF;
+ 
+  
+  packet[10] = presRaw >> 24;
+  packet[11] = presRaw >> 16;
+  packet[12] = presRaw >> 8;
+  packet[13] = presRaw;
+
+  packet[14] = qW >> 8;
+  packet[15] = qW;
+
+  packet[16] = qX >> 8;
+  packet[17] = qX;
+
+  packet[18] = qY >> 8;
+  packet[19] = qY;
+
+  packet[20] = qZ >> 8;
+  packet[21] = qZ;
+
+  LoRa.beginPacket();
+  LoRa.write(packet, 22);
 
   LoRa.endPacket();
 
-  // Debug
+  f = SD.open(filename, FILE_WRITE);
+  f.print(counter); f.print(' ');
+  f.print(temp);   f.print(' ');
+  f.print(pressure);  f.print(' ');
+  f.print(lon); f.print(' ');
+  f.println(lat);
+  f.close();
+  }
+  /*// Debug
   Serial.print(counter);
   Serial.print(' ');
   Serial.print(temp);
   Serial.print(' ');
   Serial.print(pressure);
   Serial.println(' ');
- 
-  delay(500);
+ */
+  //delay(500);
   counter++;
 }

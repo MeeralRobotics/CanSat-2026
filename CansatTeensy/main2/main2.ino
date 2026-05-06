@@ -35,6 +35,8 @@ void setup() {
   Serial.begin(115200);
   GNSS.begin(115200);
 
+  bmp.init();
+
   pinMode(buzzer, OUTPUT);
 
   SD.begin(BUILTIN_SDCARD);
@@ -52,7 +54,6 @@ void loop() {
   if(seaLevelPressure == 0.0)
   {
     seaLevelPressure = bmp.readPressure();
-    float max_alt = bmp.readAltitude();
   }
 
   while (GNSS.available()){
@@ -69,7 +70,7 @@ void loop() {
 
   float altitude = bmp.readAltitude(seaLevelPressure);
 
-  max_alt = max(max_alt, altitude);
+  float max_alt = max(max_alt, altitude);
 
   Serial.print(counter++); Serial.print(' ');
   Serial.print(avgTemp);   Serial.print(' ');
