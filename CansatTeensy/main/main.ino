@@ -103,9 +103,9 @@ void loop(){
   if (gps.location.isValid()) {
   lat = gps.location.lat();
   lon = gps.location.lng();
-  Serial.print(lon);
+ /* Serial.print(lon);
   Serial.print(" ");
-  Serial.println(lat);
+  Serial.println(lat);*/
   }
   double readNtc1 = analogRead(A8);
   double readNtc2 = analogRead(A9);
@@ -194,17 +194,18 @@ void loop(){
   f.print(temp);   f.print(' ');
   f.print(pressure);  f.print(' ');
   f.print(lon, 6); f.print(' ');
-  f.println(lat, 6);
+  f.print(lat, 6); f.print(' ');
+  f.print(q.w); f.print(' ');
+  f.print(q.x); f.print(' ');
+  f.print(q.y); f.print(' ');
+  f.println(q.z);
   f.close();
+
+  Serial.print(q.w); Serial.print(",");
+    Serial.print(q.x); Serial.print(",");
+    Serial.print(q.y); Serial.print(",");
+    Serial.println(q.z);
+
   }
-  /*// Debug
-  Serial.print(counter);
-  Serial.print(' ');
-  Serial.print(temp);
-  Serial.print(' ');
-  Serial.print(pressure);
-  Serial.println(' ');
- */
-  //delay(500);
   counter++;
 }
