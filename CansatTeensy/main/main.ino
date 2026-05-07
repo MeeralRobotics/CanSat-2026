@@ -101,11 +101,8 @@ void loop(){
   float pressure = bmp.readPressure();
 
   if (gps.location.isValid()) {
-  lat = gps.location.lat();
-  lon = gps.location.lng();
- /* Serial.print(lon);
-  Serial.print(" ");
-  Serial.println(lat);*/
+    lat = gps.location.lat();
+    lon = gps.location.lng();
   }
   double readNtc1 = analogRead(A8);
   double readNtc2 = analogRead(A9);
@@ -117,25 +114,12 @@ void loop(){
   
   float temp = (ntc1 + ntc3) / 2.0;
   
-  /*
-  Serial.print(ntc1);
-  Serial.print(" ");
-  Serial.print(ntc2);
-  Serial.print(" ");
-  Serial.println(ntc3);
-  */
 
   float altitude = bmp.readAltitude(seaLevelPressure);
   max_alt = max(max_alt, altitude);
 
   if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
     mpu.dmpGetQuaternion(&q, fifoBuffer);
-/*
-    Serial.print(q.w); Serial.print(",");
-    Serial.print(q.x); Serial.print(",");
-    Serial.print(q.y); Serial.print(",");
-    Serial.println(q.z);
-  */}
 
   if(altitude <= max_alt - 500)
   {
@@ -200,11 +184,6 @@ void loop(){
   f.print(q.y); f.print(' ');
   f.println(q.z);
   f.close();
-
-  Serial.print(q.w); Serial.print(",");
-    Serial.print(q.x); Serial.print(",");
-    Serial.print(q.y); Serial.print(",");
-    Serial.println(q.z);
 
   }
   counter++;

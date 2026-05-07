@@ -89,11 +89,15 @@ void loop() {
     float qZ = qZ_raw;
     
   f = SD.open(filename, FILE_WRITE);
-  //f.print(counter); f.print(' ');
+  f.print(counter); f.print(' ');
   f.print(temp);   f.print(' ');
   f.print(pressure);  f.print(' ');
-  f.print(lon); f.print(' ');
-  f.println(lat);
+  f.print(lon, 6); f.print(' ');
+  f.print(lat, 6); f.print(' ');
+  f.print(q.w); f.print(' ');
+  f.print(q.x); f.print(' ');
+  f.print(q.y); f.print(' ');
+  f.println(q.z);
   f.close();
     
     Serial.print(temp);
